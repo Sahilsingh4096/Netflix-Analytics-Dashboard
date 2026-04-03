@@ -18,6 +18,11 @@ data['cast'] = data['cast'].fillna('Unknown')
 data['country'] = data['country'].fillna('Unknown')
 data['rating'] = data['rating'].fillna('Unknown')
 
+# Fix date
+data['date_added'] = data['date_added'].str.strip()
+data['date_added'] = pd.to_datetime(data['date_added'], errors='coerce')
+data['year_added'] = data['date_added'].dt.year
+
 # ================= SIDEBAR FILTERS =================
 st.sidebar.header("Filters")
 
@@ -34,17 +39,24 @@ country_filter = st.sidebar.multiselect(
 )
 
 year_filter = st.sidebar.slider(
-    "Select Year",
+    "Select Year Range",
     int(data['release_year'].min()),
     int(data['release_year'].max()),
-    (2010, 2021)
+    (2015, 2021)
+)
+
+rating_filter = st.sidebar.multiselect(
+    "Select Rating",
+    options=data['rating'].unique(),
+    default=data['rating'].unique()
 )
 
 # Apply filters
 filtered_data = data[
     (data['type'].isin(type_filter)) &
     (data['country'].isin(country_filter)) &
-    (data['release_year'].between(year_filter[0], year_filter[1]))
+    (data['release_year'].between(year_filter[0], year_filter[1])) &
+    (data['rating'].isin(rating_filter))
 ]
 
 # ================= KPI =================
@@ -68,9 +80,9 @@ with col1:
     st.pyplot(fig)
 
 with col2:
-    st.subheader("Content Growth Over Years")
+    st.subheader("Content Added Over Time")
     fig, ax = plt.subplots()
-    filtered_data['release_year'].value_counts().sort_index().plot(ax=ax)
+    filtered_data['year_added'].value_counts().sort_index().plot(ax=ax)
     st.pyplot(fig)
 
 # Row 2
@@ -86,4 +98,19 @@ with col4:
     st.subheader("Top Genres")
     fig, ax = plt.subplots()
     filtered_data['listed_in'].value_counts().head(10).plot(kind='barh', ax=ax)
+    st.pyplot(fig)
+
+# Row 3 (NEW CHARTS)
+col5, col6 = st.columns(2)
+
+with col5:
+    st.subheader("Top Directors")
+    fig, ax = plt.subplots()
+    filtered_data['director'].value_counts().head(10).plot(kind='barh', ax=ax)
+    st.pyplot(fig)
+
+with col6:
+    st.subheader("Ratings Distribution")
+    fig, ax = plt.subplots()
+    filtered_data['rating'].value_counts().plot(kind='bar', ax=ax)
     st.pyplot(fig)
